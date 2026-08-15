@@ -1,5 +1,5 @@
 <!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NovaTopUp MTY</title><script src="https://sdk.mercadopago.com/js/v2"></script><style>body{font-family:Arial;background:#0f0f1a;color:#fff;padding:20px}.card{max-width:420px;margin:auto;background:#1a1a2e;padding:20px;border-radius:16px}input,select{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:none;box-sizing:border-box}button{background:#00d9ff;padding:14px;width:100%;border:none;border-radius:10px;font-weight:bold;font-size:18px;cursor:pointer}#msg{color:#ff6b6b;white-space:pre-wrap;word-break:break-word;margin-top:10px;text-align:center}#brick{margin-top:15px}</style></head><body><div class="card"><h2 style="text-align:center;color:#00d9ff">💎 NovaTopUp MTY</h2><p id="price" style="text-align:center;color:#00ff88;font-size:24px">$18 - 110 Diamantes</p><input id="playerId" placeholder="ID de jugador" value="1381809301"><select id="pack"><option value="110|18">110 - $18</option><option value="341|55">341 - $55</option><option value="572|87">572 - $87</option><option value="1166|180">1166 - $180</option><option value="2398|337">2398 - $337</option><option value="6160|792">6160 - $792</option></select><button id="btn">Continuar al pago</button><div id="brick"></div><p id="msg"></p></div><script>
-const PUBLIC_KEY='APP_USR-47884e6a-fa70-4519-9430-f6103020f649';
+const PUBLIC_KEY='APP_USR-fb7da8eb-58bf-4156-8c75-a5f2fa0a91b1';
 const mp = new MercadoPago(PUBLIC_KEY, {locale:'es-MX'});
 let amount=18, diamonds=110;
 const sel=document.getElementById('pack'), priceEl=document.getElementById('price'), btn=document.getElementById('btn'), msg=document.getElementById('msg');
@@ -8,31 +8,23 @@ btn.addEventListener('click', async()=>{
   try{
     const playerId=document.getElementById('playerId').value.trim();
     if(!playerId){msg.textContent='Pon tu ID';return;}
-    msg.textContent='Cargando pago...'; 
-    btn.style.display='none';
-    document.getElementById('brick').innerHTML='';
+    msg.textContent='Cargando pago...'; btn.style.display='none'; document.getElementById('brick').innerHTML='';
     const bricksBuilder = mp.bricks();
-    console.log("Creando brick con monto", amount);
-    const controller = await bricksBuilder.create('payment','brick',{
+    await bricksBuilder.create('payment','brick',{
       initialization:{amount:amount, payer:{email:"cliente@novatopup.com"}},
-      customization:{
-        paymentMethods:{creditCard:"all",debitCard:"all",ticket:"all",bankTransfer:"all",wallet_purchase:"all",maxInstallments:1},
-        visual:{style:{theme:"dark"}}
-      },
+      customization:{paymentMethods:{creditCard:"all",debitCard:"all",ticket:"all",bankTransfer:"all",wallet_purchase:"all",maxInstallments:1}, visual:{style:{theme:"dark"}}},
       callbacks:{
-        onReady:()=>{msg.textContent=''; console.log("Brick listo");},
+        onReady:()=>{msg.textContent='';},
         onSubmit:({formData})=>{
-          msg.textContent='Procesando pago...';
-          return fetch('/api/process-payment.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:formData.token, payment_method_id:formData.payment_method_id, installments:formData.installments, payer:{email:formData.payer.email}, amount:amount, playerId:playerId, diamonds:diamonds})})
-          .then(r=>r.json()).then(data=>{
-            console.log(data);
-            if(data.status==='approved'){msg.style.color='#00ff88';msg.textContent='¡Pago aprobado! ID:'+playerId; document.getElementById('brick').innerHTML='';}
+          msg.textContent='Procesando...';
+          return fetch('/api/process-payment.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:formData.token, payment_method_id:formData.payment_method_id, installments:formData.installments, payer:{email:formData.payer.email}, amount:amount, playerId:playerId, diamonds:diamonds})}).then(r=>r.json()).then(data=>{
+            if(data.status==='approved'){msg.style.color='#00ff88';msg.textContent='¡PAGO APROBADO! ID:'+playerId; document.getElementById('brick').innerHTML='';}
             else{msg.textContent=JSON.stringify(data);}
           });
         },
-        onError:(e)=>{msg.textContent='Error Brick: '+JSON.stringify(e); console.error(e); btn.style.display='block';}
+        onError:(e)=>{msg.textContent='Error: '+JSON.stringify(e); btn.style.display='block';}
       }
     });
-  }catch(err){msg.textContent='Error JS: '+err.message; console.error(err); btn.style.display='block';}
+  }catch(err){msg.textContent='Error: '+err.message; btn.style.display='block';}
 });
 </script></body></html>
