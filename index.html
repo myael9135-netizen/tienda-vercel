@@ -1,20 +1,25 @@
-<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NovaTopUp $18</title><script src="https://sdk.mercadopago.com/js/v2"></script><style>body{font-family:Arial;background:#0f0f1a;color:#fff;padding:20px} .card{max-width:420px;margin:auto;background:#1a1a2e;padding:20px;border-radius:16px} input,select{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:none} button{background:#00d9ff;padding:14px;width:100%;border:none;border-radius:10px;font-weight:bold;font-size:18px}</style></head><body><div class="card"><h2 style="text-align:center;color:#00d9ff">💎 NovaTopUp MTY</h2><p id="price" style="text-align:center;color:#00ff88;font-size:24px">$18 - 110 Diamantes</p><input id="playerId" placeholder="ID: 1381809301"><select id="pack"><option value="110|18">110 - $18</option><option value="341|55">341 - $55</option><option value="572|87">572 - $87</option><option value="1166|180">1166 - $180</option><option value="2398|337">2398 - $337</option><option value="6160|792">6160 - $792</option></select><button id="btn">Continuar al pago</button><div id="brick"></div><p id="msg"></p></div><script>
-const PUBLIC_KEY="APP_USR-47884e6a-fa70-4519-9430-f6103020f649"; const mp=new MercadoPago(PUBLIC_KEY,{locale:'es-MX'});
-document.getElementById('btn').onclick=async()=>{
- const pid=document.getElementById('playerId').value; if(!pid){alert('Pon ID');return;}
- const [dia,pre]=document.getElementById('pack').value.split('|');
- document.getElementById('msg').innerText='Cargando pago seguro...';
- const bricks=mp.bricks(); await bricks.create('payment','brick',{
-  initialization:{amount:Number(pre)},
-  callbacks:{
-   onReady:()=>{document.getElementById('btn').style.display='none'; document.getElementById('msg').innerText=''},
-   onSubmit:async({formData})=>{
-    const res=await fetch('/api/create-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...formData,playerId:pid,diamantes:dia,precio:pre})});
-    const d=await res.json(); if(d.status==='approved') document.getElementById('msg').innerText='✅ ¡Pago aprobado! ID: '+pid; else document.getElementById('msg').innerText='Estado: '+d.status+' - '+(d.error||'');
-    return;
-   },
-   onError:(e)=>{document.getElementById('msg').innerText='Error: '+e}
+<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>NovaTopUp $18</title><script src="https://sdk.mercadopago.com/js/v2"></script><style>body{font-family:Arial;background:#0f0f1a;color:#fff;padding:20px}.card{max-width:420px;margin:auto;background:#1a1a2e;padding:20px;border-radius:16px}input,select{width:100%;padding:12px;margin:8px 0;border-radius:8px;border:none}button{background:#00d9ff;padding:14px;width:100%;border:none;border-radius:10px;font-weight:bold;font-size:18px;cursor:pointer}#msg{color:#ff6b6b;white-space:pre-wrap;word-break:break-word;margin-top:10px}</style></head><body><div class="card"><h2 style="text-align:center;color:#00d9ff">💎 NovaTopUp MTY</h2><p id="price" style="text-align:center;color:#00ff88;font-size:24px">$18 - 110 Diamantes</p><input id="playerId" placeholder="ID: 1381809301"><select id="pack"><option value="110|18">110 - $18</option><option value="341|55">341 - $55</option><option value="572|87">572 - $87</option><option value="1166|180">1166 - $180</option><option value="2398|337">2398 - $337</option><option value="6160|792">6160 - $792</option></select><button id="btn">Continuar al pago</button><div id="brick"></div><p id="msg"></p></div><script>
+const PUBLIC_KEY='APP_USR-47884e6a-fa70-4519-9430-f6103020f649';
+const mp=new MercadoPago(PUBLIC_KEY,{locale:'es-MX'});
+const packEl=document.getElementById('pack'), priceEl=document.getElementById('price'), msgEl=document.getElementById('msg'), btn=document.getElementById('btn');
+packEl.addEventListener('change',()=>{const [d,p]=packEl.value.split('|');priceEl.textContent=`$${p} - ${d} Diamantes`});
+btn.addEventListener('click',async()=>{
+  msgEl.textContent='Procesando...'; btn.disabled=true;
+  try{
+    const playerId=document.getElementById('playerId').value.trim();
+    if(!playerId) throw new Error('Pon tu ID de Free Fire');
+    const [diamonds,price]=packEl.value.split('|');
+    const res=await fetch('/api/create-payment',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({playerId,amount:Number(price),diamonds})});
+    const data=await res.json();
+    if(!res.ok){
+      throw new Error(JSON.stringify(data,null,2));
+    }
+    if(!data.init_point) throw new Error('No se recibio init_point: '+JSON.stringify(data));
+    window.location.href=data.init_point;
+  }catch(e){
+    console.error(e);
+    msgEl.textContent='ERROR REAL: '+(e.message||JSON.stringify(e));
+    btn.disabled=false;
   }
- });
-};
+});
 </script></body></html>
