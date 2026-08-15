@@ -3,41 +3,36 @@ const PUBLIC_KEY='APP_USR-47884e6a-fa70-4519-9430-f6103020f649';
 const mp = new MercadoPago(PUBLIC_KEY, {locale:'es-MX'});
 let amount=18, diamonds=110;
 const sel=document.getElementById('pack'), priceEl=document.getElementById('price'), btn=document.getElementById('btn'), msg=document.getElementById('msg');
-sel.addEventListener('change',()=>{const [d,a]=sel.value.split('|');diamonds=d;amount=Number(a);priceEl.textContent=`$${a} - ${d} Diamantes`});
+sel.addEventListener('change',()=>{const [d,a]=sel.value.split('|');diamonds=d;amount=Number(a);priceEl.textContent=`$${a} - ${d} Diamantes`; document.getElementById('brick').innerHTML=''; btn.style.display='block'; msg.textContent='';});
 btn.addEventListener('click', async()=>{
-  const playerId=document.getElementById('playerId').value.trim();
-  if(!playerId){msg.textContent='Pon tu ID';return;}
-  msg.textContent='Cargando pago...'; btn.style.display='none';
-  const bricksBuilder = mp.bricks();
-  const settings={
-    initialization:{amount:amount, payer:{email:"cliente@novatopup.com"}},
-    customization:{
-      paymentMethods:{
-        creditCard: "all",
-        debitCard: "all",
-        ticket: "all",
-        bankTransfer: "all",
-        wallet_purchase: "all",
-        maxInstallments: 1
+  try{
+    const playerId=document.getElementById('playerId').value.trim();
+    if(!playerId){msg.textContent='Pon tu ID';return;}
+    msg.textContent='Cargando pago...'; 
+    btn.style.display='none';
+    document.getElementById('brick').innerHTML='';
+    const bricksBuilder = mp.bricks();
+    console.log("Creando brick con monto", amount);
+    const controller = await bricksBuilder.create('payment','brick',{
+      initialization:{amount:amount, payer:{email:"cliente@novatopup.com"}},
+      customization:{
+        paymentMethods:{creditCard:"all",debitCard:"all",ticket:"all",bankTransfer:"all",wallet_purchase:"all",maxInstallments:1},
+        visual:{style:{theme:"dark"}}
       },
-      visual:{style:{theme:"dark"}}
-    },
-    callbacks:{
-      onReady:()=>{msg.textContent='';},
-      onSubmit:({formData})=>{
-        return new Promise((resolve,reject)=>{
-          fetch('/api/process-payment.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-            token:formData.token, payment_method_id:formData.payment_method_id, installments:formData.installments, payer:{email:formData.payer.email}, amount:amount, playerId:playerId, diamonds:diamonds
-          })}).then(r=>r.json()).then(data=>{
-            if(data.status==='approved'){msg.style.color='#00ff88';msg.textContent='¡Pago aprobado! Diamantes para ID:'+playerId; document.getElementById('brick').innerHTML=''; resolve();}
-            else if(data.status==='pending' || data.status==='in_process'){msg.style.color='#00ff88';msg.textContent='Pago en proceso, te avisamos.'; resolve();}
-            else{msg.textContent='Error: '+JSON.stringify(data); reject();}
-          }).catch(e=>{msg.textContent='Error: '+e; reject();});
-        });
-      },
-      onError:(e)=>{msg.textContent=JSON.stringify(e); console.log(e);}
-    }
-  };
-  const controller = await bricksBuilder.create('payment','brick',settings);
-};
+      callbacks:{
+        onReady:()=>{msg.textContent=''; console.log("Brick listo");},
+        onSubmit:({formData})=>{
+          msg.textContent='Procesando pago...';
+          return fetch('/api/process-payment.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:formData.token, payment_method_id:formData.payment_method_id, installments:formData.installments, payer:{email:formData.payer.email}, amount:amount, playerId:playerId, diamonds:diamonds})})
+          .then(r=>r.json()).then(data=>{
+            console.log(data);
+            if(data.status==='approved'){msg.style.color='#00ff88';msg.textContent='¡Pago aprobado! ID:'+playerId; document.getElementById('brick').innerHTML='';}
+            else{msg.textContent=JSON.stringify(data);}
+          });
+        },
+        onError:(e)=>{msg.textContent='Error Brick: '+JSON.stringify(e); console.error(e); btn.style.display='block';}
+      }
+    });
+  }catch(err){msg.textContent='Error JS: '+err.message; console.error(err); btn.style.display='block';}
+});
 </script></body></html>
