@@ -18,8 +18,7 @@ btn.addEventListener('click', async()=>{
         onSubmit:({formData})=>{
           msg.textContent='Procesando...';
           return fetch('/api/process-payment.js',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:formData.token, payment_method_id:formData.payment_method_id, installments:formData.installments, payer:{email:formData.payer.email}, amount:amount, playerId:playerId, diamonds:diamonds})}).then(r=>r.json()).then(data=>{
-            if(data.status==='approved'){msg.style.color='#00ff88';msg.textContent='¡PAGO APROBADO! ID:'+playerId; document.getElementById('brick').innerHTML='';}
-            else{msg.textContent=JSON.stringify(data);}
+            if(data.status==='approved'){msg.style.color='#00ff88';msg.textContent='¡PAGO APROBADO! ID:'+playerId; document.getElementById('brick').innerHTML='';} else if(data.ticket_url){msg.style.color='#00d9ff';msg.innerHTML='¡TICKET OXXO CREADO!<br><a href="'+data.ticket_url+'" target="_blank" style="color:#00ff88;font-size:20px">CLIC AQUÍ PARA VER TU TICKET OXXO</a><br><br>Pagalo en OXXO y tus diamantes llegan solos'; window.open(data.ticket_url, '_blank');} else{msg.textContent=JSON.stringify(data);}
           });
         },
         onError:(e)=>{msg.textContent='Error: '+JSON.stringify(e); btn.style.display='block';}
