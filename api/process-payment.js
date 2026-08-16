@@ -9,19 +9,33 @@ module.exports = async (req, res) => {
   try {
     const token = process.env.MERCADOPAGO_ACCESS_TOKEN;
     mercadopago.configure({ access_token: token });
+    
     const { token: cardToken, payment_method_id, payer, amount, playerId, diamonds } = req.body;
 
-    const payment = await mercadopago.payment.create({
-      transaction_amount: Number(amount),
-      token: cardToken,
-      description: `${diamonds} Diamantes ID:${playerId}`,
-      installments: 1,
-      payment_method_id: payment_method_id,
-      payer: { email: payer.email },
-      external_reference: playerId.toString(),
+    let paymentData = {
+        transaction_amount: Number(amount),
+        description: `${diamonds} Diamantes ID:${playerId}`,
+        payment_method_id: payment_method_id,
+        payer: { email: payer.email },
+        external_reference: playerId.toString(),
+    };
+
+    // Solo si es tarjeta, agregamos el token
+    if (payment_method_id !== 'oxxo') {
+        paymentData.token = cardToken;
+        paymentData.installments = 1;
+    }
+
+    const payment = await mercadopago.payment.create(paymentData);
+
+    return res.status(200).json({
+        status: payment.body.status,
+        id: payment.body.id,
+        ticket_url: payment.body.transaction_details ? payment.body.transaction_details.external_resource_url : null
     });
-    return res.status(200).json({ status: payment.body.status, id: payment.body.id });
+
   } catch (e) {
-    return res.status(500).json({ error: e.message, details: e.toString() });
+    console.log(e);
+    return res.status(500).json({ error: e.message });
   }
 };
